@@ -13,8 +13,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class UserService {
@@ -40,7 +43,19 @@ public class UserService {
         User user = new User();
         user.setPassword(new BCryptPasswordEncoder().encode(userDto.getPassword()));
         user.setUsername(userDto.getUsername());
-        user.setRoles(Set.of(User.Role.valueOf(userDto.getRole())));
+
+        Set<User.Role> roles = new HashSet<>();
+
+        try {
+            roles = Stream.of(User.Role.values())
+                    .filter(role -> role.name().equals(userDto.getRole()))
+                    .collect(Collectors.toSet());
+        } catch (IllegalArgumentException e) {
+            logger.info("Incorrect role: {}", userDto.getRole());
+            roles.add(User.Role.ROLE_USER);
+        }
+
+        user.setRoles(roles);
         logger.info("Save author {}", user);
         userRepo.save(user);
         logger.info("Saved author {}", user);
