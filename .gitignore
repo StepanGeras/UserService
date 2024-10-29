@@ -1,0 +1,4 @@
+# Исключить папки build и .idea
+/build/
+/.idea/
+/.gradle

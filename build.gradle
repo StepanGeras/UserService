@@ -35,8 +35,8 @@ dependencyManagement {
 }
 
 dependencies {
-    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
-    runtimeOnly 'io.micrometer:micrometer-registry-otlp'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-logging:3.3.4'
@@ -55,8 +55,38 @@ dependencies {
     implementation 'org.springframework.security:spring-security-crypto:6.3.3'
     implementation 'io.jsonwebtoken:jjwt:0.9.1'
     implementation 'javax.xml.bind:jaxb-api:2.3.1'
-
 }
+
+def versionNumber = {
+    ByteArrayOutputStream stdoutCommitNumber = new ByteArrayOutputStream()
+    ByteArrayOutputStream stdoutCommitHash = new ByteArrayOutputStream()
+    ByteArrayOutputStream stdoutBranchName = new ByteArrayOutputStream()
+
+    exec {
+        commandLine("git", "rev-list", "HEAD", "--count")
+        standardOutput = stdoutCommitNumber
+    }
+
+    exec {
+        commandLine("git", "rev-parse", "--short", "HEAD")
+        standardOutput = stdoutCommitHash
+    }
+
+    exec {
+        commandLine("git", "rev-parse", "--abbrev-ref", "HEAD")
+        standardOutput = stdoutBranchName
+    }
+
+    String appVersion = stdoutCommitNumber.toString().trim() + "-" +
+            stdoutCommitHash.toString().trim() + "-" +
+            stdoutBranchName.toString().trim()
+    return appVersion.toLowerCase()
+}
+
+allprojects {
+    version = versionNumber()
+}
+
 
 tasks.named('test') {
     useJUnitPlatform()
