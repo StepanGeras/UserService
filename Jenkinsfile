@@ -2,55 +2,46 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "myusername/myapp:${version}"
-        DOCKER_CREDENTIALS_ID = 'dockerhub-credentials'
-        MINIKUBE_CONTEXT = 'minikube'
+        DOCKER_CREDENTIALS_ID = 'dockerhub-credentials' // ID учетных данных Docker Hub
+        DOCKER_IMAGE = "dockerhub_username/${env.JOB_NAME}" // имя образа
+        VERSION = versionNumber() // получение версии из функции версии Gradle
     }
 
     stages {
-        stage('build') {
+        stage('Checkout') {
             steps {
-                script {
-                    sh './gradlew build'
+                // Склонировать проект из Git-репозитория
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                // Собрать проект с помощью Gradle и создать Docker образ
+                sh './gradlew clean build' // Собирает проект
+                sh "docker build -t ${DOCKER_IMAGE}:${VERSION} ." // Создает Docker образ с версией
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                // Аутентификация и пуш образа в Docker Hub
+                withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+                    sh "echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin"
+                    sh "docker push ${DOCKER_IMAGE}:${VERSION}"
                 }
             }
         }
 
-        stage('docker-build') {
+        stage('Deploy to Minikube') {
             steps {
+                // Деплой образа в Minikube
                 script {
-                    sh "docker build -t ${DOCKER_IMAGE} ."
+                    sh "kubectl set image deployment/${JOB_NAME} ${JOB_NAME}=${DOCKER_IMAGE}:${VERSION} --namespace=microservices"
                 }
             }
-        }
-
-        stage('docker-push') {
-            steps {
-                script {
-                    docker.withRegistry('https://index.docker.io/v1/', "${DOCKER_CREDENTIALS_ID}") {
-                        sh "docker push ${DOCKER_IMAGE}"
-                    }
-                }
-            }
-        }
-
-        stage('deploy-minikube') {
-            steps {
-                script {
-                    sh 'eval $(minikube docker-env)'
-
-                    sh """
-                    kubectl set image deployment/myapp-deployment myapp=${DOCKER_IMAGE} -n default
-                    kubectl rollout status deployment/myapp-deployment -n default
-                    """
-                }
-            }
-        }
-    }
-
-    post {
-        always {
-            cleanWs()
         }
     }
 }
+
+
