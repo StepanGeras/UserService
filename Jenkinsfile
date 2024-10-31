@@ -55,8 +55,9 @@ pipeline {
                 kubectl set env deployment/userservice SPRING_CLOUD_CONFIG_URI=${CONFIG_URI} 
                 kubectl set env deployment/userservice SPRING_DATA_MONGODB_URI=${DATA_MONGODB_URI} 
             """
+                }
+            }
         }
     }
- }
 }
 
