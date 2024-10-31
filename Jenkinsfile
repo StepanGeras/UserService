@@ -45,7 +45,7 @@ pipeline {
                 sh "kubectl set image deployment/userservice userservice=${IMAGE_NAME}"
             }
             sh """
-                withCredentials([usernamePassword(credentialsId: 'postgres-credentials', usernameVariable: 'POSTGRES_USERNAME', passwordVariable: 'POSTGRES_PASS')]) {
+                withCredentials([usernamePassword(credentialsId: 'postgres-credentials', usernameVariable: 'POSTGRES_USER', passwordVariable: 'POSTGRES_PASS')]) {
                     kubectl set env deployment/userservice SPRING_DATASOURCE_URL=${DATASOURCE_URL_POSTGRES} 
                     kubectl set env deployment/userservice SPRING_DATASOURCE_USERNAME=${POSTGRES_USERNAME} 
                     kubectl set env deployment/userservice SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASS} 
