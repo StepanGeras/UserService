@@ -1,45 +1,60 @@
 pipeline {
     agent any
-
     environment {
-        DOCKER_CREDENTIALS_ID = 'dockerhub-credentials' // ID учетных данных Docker Hub
-        DOCKER_IMAGE = "shifer/${env.JOB_NAME}" // имя образа
-        VERSION = versionNumber() // получение версии из функции версии Gradle
+        IMAGE_NAME = "shifer/userservice:latest"
+        CONSUL_HOST = "consul"
+        CONSUL_PORT = "8500" 
+        CONFIG_URI = "http://configservice:8888"
+        DATA_MONGODB_URI = "mongodb://mongo:27017"
+        DATASOURCE_URL_POSTGRES = "jdbc:postgresql://postgres:5432/postgres" 
     }
-
     stages {
-        stage('Checkout') {
+        stage('Gradle Build') {
             steps {
-                // Склонировать проект из Git-репозитория
-                checkout scm
+                sh './gradlew clean build'
+                sh 'ls -la build/libs'
             }
         }
-
-        stage('Build') {
+        stage('Docker Build') {
             steps {
-                // Собрать проект с помощью Gradle и создать Docker образ
-                sh './gradlew clean build' // Собирает проект
-                sh "docker build -t ${DOCKER_IMAGE}:${VERSION} ." // Создает Docker образ с версией
+                sh "docker build -t ${IMAGE_NAME} ."
             }
         }
-
-        stage('Push to Docker Hub') {
+        stage('Docker Push') {
             steps {
-                // Аутентификация и пуш образа в Docker Hub
-                withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
-                    sh "echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin"
-                    sh "docker push ${DOCKER_IMAGE}:${VERSION}"
+                withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh "docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}"
+                    sh "docker push ${IMAGE_NAME}"
                 }
             }
         }
-
         stage('Deploy to Minikube') {
-            steps {
-                // Деплой образа в Minikube
-                script {
-                    sh "kubectl set image deployment/${JOB_NAME} ${JOB_NAME}=${DOCKER_IMAGE}:${VERSION} --namespace=microservices"
-                }
+    steps {
+        script {
+            def deploymentExists = sh(
+                script: "kubectl get deployment userservice --ignore-not-found",
+                returnStatus: true
+            ) == 0
+
+            if (!deploymentExists) {
+                sh """
+                    kubectl create deployment userservice --image=${IMAGE_NAME} 
+                    kubectl expose deployment userservice --type=ClusterIP --port=8081
+                 """
+            } else {
+                sh "kubectl set image deployment/userservice userservice=${IMAGE_NAME}"
             }
+            sh """
+                withCredentials([usernamePassword(credentialsId: 'postgres-credentials', usernameVariable: 'POSTGRES_USERNAME', passwordVariable: 'POSTGRES_PASS')]) {
+                    kubectl set env deployment/userservice SPRING_DATASOURCE_URL=${DATASOURCE_URL_POSTGRES} 
+                    kubectl set env deployment/userservice SPRING_DATASOURCE_USERNAME=${POSTGRES_USERNAME} 
+                    kubectl set env deployment/userservice SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASS} 
+                }
+                kubectl set env deployment/userservice SPRING_CLOUD_CONSUL_HOST=${CONSUL_HOST} 
+                kubectl set env deployment/userservice SPRING_CLOUD_CONSUL_PORT=${CONSUL_PORT}
+                kubectl set env deployment/userservice SPRING_CLOUD_CONFIG_URI=${CONFIG_URI} 
+                kubectl set env deployment/userservice SPRING_DATA_MONGODB_URI=${DATA_MONGODB_URI} 
+            """
         }
     }
 }
