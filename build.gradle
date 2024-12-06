@@ -48,6 +48,11 @@ dependencies {
     implementation 'org.springframework.kafka:spring-kafka'
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'org.springframework.kafka:spring-kafka-test'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation 'org.testcontainers:mongodb'
+    testImplementation 'org.testcontainers:kafka'
+    testImplementation 'org.testcontainers:postgresql'
     compileOnly 'org.projectlombok:lombok'
     runtimeOnly 'org.postgresql:postgresql'
     annotationProcessor 'org.projectlombok:lombok'
@@ -55,7 +60,13 @@ dependencies {
     implementation 'org.springframework.security:spring-security-crypto:6.3.3'
     implementation 'io.jsonwebtoken:jjwt:0.9.1'
     implementation 'javax.xml.bind:jaxb-api:2.3.1'
+    testImplementation 'org.testcontainers:testcontainers'
+    testImplementation 'org.mockito:mockito-core:5.14.2'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
 }
+
 
 def versionNumber = {
     ByteArrayOutputStream stdoutCommitNumber = new ByteArrayOutputStream()

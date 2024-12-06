@@ -74,4 +74,8 @@ public class BookService {
         bookRepo.save(book);
     }
 
+    public List<Book> findAllBook () {
+        return bookRepo.findAll();
+    }
+
 }
