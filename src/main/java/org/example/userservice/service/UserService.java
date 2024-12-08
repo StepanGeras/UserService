@@ -4,6 +4,7 @@ import org.example.userservice.dto.UserDto;
 import org.example.userservice.entity.Book;
 import org.example.userservice.entity.User;
 import org.example.userservice.exception.user.UserNotFoundException;
+import org.example.userservice.repo.BookRepo;
 import org.example.userservice.repo.UserRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,13 +24,15 @@ import java.util.stream.Stream;
 public class UserService {
 
     private final UserRepo userRepo;
+    private final BookRepo bookRepo;
     private final PasswordEncoder passwordEncoder;
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
     @Autowired
-    public UserService(UserRepo userRepo, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepo userRepo, PasswordEncoder passwordEncoder, BookRepo bookRepo) {
         this.userRepo = userRepo;
         this.passwordEncoder = passwordEncoder;
+        this.bookRepo = bookRepo;
     }
 
     public List<User> findAll() {
@@ -103,7 +106,7 @@ public class UserService {
 
     public List<Book> findAllBooksByUserId(Long authorId) {
         logger.info("Find all books by author id {}", authorId);
-        List<Book> bookList = userRepo.findAllBooksByUserId(authorId);
+        List<Book> bookList = bookRepo.findAllByUserId(authorId);
         logger.info("Found {} books", bookList.size());
         return bookList;
     }

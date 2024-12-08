@@ -29,4 +29,10 @@ public class Book {
     @ToString.Exclude
     private User user;
 
+    public Book(long id, String title, String description, String imageId) {
+        this.id = id;
+        this.title = title;
+        this.description = description;
+        this.imageId = imageId;
+    }
 }

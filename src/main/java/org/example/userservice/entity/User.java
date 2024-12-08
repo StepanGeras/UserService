@@ -26,6 +26,7 @@ public class User {
     private String username;
     private String password;
 
+
     @ElementCollection(fetch = FetchType.EAGER)
     private Set<Role> roles;
 
@@ -39,5 +40,11 @@ public class User {
     private List<Book> book;
 
     private String imageId;
+
+    public User(long id, String username, String password) {
+        this.id = id;
+        this.username = username;
+        this.password = password;
+    }
 
 }
